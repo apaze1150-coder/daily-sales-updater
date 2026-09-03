@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>อัปโหลดปิดยอดขายประจำวัน</title>
+    <title>สรุปยอดขายประจำวัน ALL KPT</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -13,162 +12,204 @@
         body { font-family: 'Prompt', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 p-4">
+<body class="bg-slate-50 min-h-screen text-slate-800 p-4 pb-28">
 
-    <div class="max-w-md mx-auto space-y-4 mb-10">
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-md text-center">
-            <h1 class="text-xl font-bold">📑 อัปโหลดปิดยอดขายประจำวัน</h1>
-            <p class="text-sm opacity-90 mt-1">ประมวลผลแยกกะ CA, A, B, C อัตโนมัติ</p>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+    <div class="max-w-md mx-auto space-y-4">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-md flex justify-between items-center">
             <div>
-                <label class="block text-sm font-medium text-slate-600 mb-1">📅 วันที่ของยอดขาย</label>
-                <input type="date" id="sale-date" class="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600">
+                <h1 class="text-xl font-bold">📊 สรุปยอดขายรวม ALL KPT</h1>
+                <p class="text-sm opacity-90 mt-0.5">เวลาปัจจุบัน: <span id="current-time" class="font-bold bg-white/20 px-2 py-0.5 rounded">00.00</span></p>
             </div>
-
-            <div>
-                <label class="block text-sm font-medium text-slate-600 mb-1">📂 เลือกไฟล์ Excel ปิดวัน (.xlsx)</label>
-                <input type="file" id="excel-file" accept=".xlsx, .xls" class="w-full p-2 border border-slate-200 rounded-xl focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-            </div>
-        </div>
-
-        <div id="result-box" class="hidden bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
-            <h2 class="text-md font-bold text-slate-700 border-b pb-2">📊 ผลรวมยอดขายที่คำนวณได้</h2>
-            
-            <div class="flex justify-between text-sm py-1 border-b border-dashed">
-                <span class="text-slate-500">รอบ CA (00:00 - 05:59):</span>
-                <span id="res-ca" class="font-semibold text-slate-700">0.00</span>
-            </div>
-            <div class="flex justify-between text-sm py-1 border-b border-dashed">
-                <span class="text-slate-500">รอบ A (06:00 - 12:59):</span>
-                <span id="res-a" class="font-semibold text-slate-700">0.00</span>
-            </div>
-            <div class="flex justify-between text-sm py-1 bg-blue-50/70 p-2 rounded-lg">
-                <span class="font-medium text-blue-800">👉 รวมรอบ A (CA + A):</span>
-                <span id="res-sum-a" class="font-bold text-blue-800">0.00</span>
-            </div>
-            <div class="flex justify-between text-sm py-1 border-b border-dashed">
-                <span class="text-slate-500">รอบ B (13:00 - 21:59):</span>
-                <span id="res-b" class="font-semibold text-slate-700">0.00</span>
-            </div>
-            <div class="flex justify-between text-sm py-1 border-b border-dashed">
-                <span class="text-slate-500">รอบ C (22:00 - 23:59):</span>
-                <span id="res-c" class="font-semibold text-slate-700">0.00</span>
-            </div>
-            <div class="flex justify-between text-base pt-2 font-bold text-emerald-600">
-                <span>ยอดรวมทั้งวัน:</span>
-                <span id="res-total">0.00</span>
-            </div>
-
-            <button id="save-btn" onclick="sendToGoogleSheets()" class="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all text-white font-medium text-lg py-3 rounded-xl shadow flex justify-center items-center gap-2">
-                ☁️ บันทึกลง Google Sheets
+            <button onclick="refreshTime()" class="bg-white/20 hover:bg-white/30 active:scale-95 p-2 rounded-xl text-sm flex items-center gap-1 transition-all">
+                🔄 รีเฟรช
             </button>
+        </div>
+
+        <!-- กล่องข้อมูลและการเชื่อมต่อ Google Sheet -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500">ฐานข้อมูล Google Sheets:</span>
+            <button onclick="fetchYesterdayFromSheet()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-medium border border-indigo-200 transition-all">
+                📥 ดึงยอดเมื่อวานอัตโนมัติ
+            </button>
+        </div>
+
+        <!-- ฟอร์มกรอกข้อมูลแต่ละรอบ -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            
+            <!-- รอบ A (+CA) -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-sm font-medium text-slate-700">🌅 ยอดรวมรอบ A (+CA)</label>
+                    <span class="text-xs text-slate-400">Target: 2,264,147</span>
+                </div>
+                <input type="number" id="sales-a" placeholder="กรอกยอดรอบ A รวม CA" class="w-full text-base p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600">
+            </div>
+
+            <!-- รอบ B -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-sm font-medium text-slate-700">☀️ ยอดรอบ B</label>
+                    <span class="text-xs text-slate-400">Target: 3,428,653</span>
+                </div>
+                <input type="number" id="sales-b" placeholder="กรอกยอดขายรอบ B" class="w-full text-base p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600">
+            </div>
+
+            <!-- รอบ C -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-sm font-medium text-slate-700">🌙 ยอดรอบ C</label>
+                    <span class="text-xs text-slate-400">Target: 1,507,200</span>
+                </div>
+                <input type="number" id="sales-c" placeholder="กรอกยอดขายรอบ C" class="w-full text-base p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600">
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- ยอดรวมเมื่อวานสำหรับเปรียบเทียบ -->
+            <div>
+                <label class="block text-sm font-medium text-slate-600 mb-1">⏳ ยอดรวมทั้งวันของเมื่อวาน</label>
+                <input type="number" id="sales-yesterday" placeholder="กดปุ่มดึงข้อมูล หรือกรอกเอง" class="w-full text-base p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 bg-slate-50">
+            </div>
+        </div>
+
+        <!-- กล่อง Preview ข้อความ -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">ข้อความที่จะคัดลอก (Preview)</h3>
+            <pre id="preview-box" class="bg-blue-50/60 text-slate-800 p-4 rounded-xl border border-blue-100 whitespace-pre-wrap text-sm leading-relaxed min-h-[160px] font-mono">กรุณากรอกข้อมูลยอดขาย...</pre>
         </div>
     </div>
 
+    <!-- ปุ่มคัดลอกด้านล่าง -->
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 max-w-md mx-auto w-full z-50">
+        <button onclick="copyToClipboard()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all text-white font-medium text-lg py-3.5 rounded-xl shadow-md flex justify-center items-center gap-2">
+            📋 คัดลอกข้อความส่ง LINE
+        </button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        ✅ คัดลอกข้อความสำเร็จแล้ว!
+    </div>
+
     <script>
-        // วาง URL ของ Google Apps Script ที่ได้จากขั้นตอน Deploy ที่นี่
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyrVJ8yuWx0G1RVB88fPhAy1skl5PPXb0Jn3a0-fpcw0zOdEwmqwKcQmlmNuOrzaS3-2g/exec";
+        // วาง URL ของ Google Apps Script ที่ Deploy ไว้
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTYYuCMdoNCtWtqd_lP54d3hIuTNcKrzRDnfb7YQsRTCRh9kiTYDGJrnOi9okDvYiLiA/exec";
 
-        // กำหนดวันที่ปัจจุบันในกล่องเลือกวัน
-        document.getElementById('sale-date').valueAsDate = new Date();
+        const TARGET_A = 2264147;
+        const TARGET_B = 3428653;
+        const TARGET_C = 1507200;
+        const TARGET_TOTAL = 7200000;
 
-        let shiftData = null;
+        let formattedTime = "";
+        let currentDateStr = "";
+        let yesterdayDateStr = "";
 
-        function sumRowRange(rowArray, startIndex, endIndex) {
-            let sum = 0;
-            for (let i = startIndex; i <= endIndex; i++) {
-                let val = parseFloat(rowArray[i]) || 0;
-                sum += val;
-            }
-            return sum;
+        function refreshTime() {
+            const now = new Date();
+            const yearShort = "26";
+            formattedTime = `${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('current-time').innerText = formattedTime;
+            
+            currentDateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${yearShort}`;
+
+            const yesterday = new Date();
+            yesterday.setDate(now.getDate() - 1);
+            yesterdayDateStr = `${String(yesterday.getDate()).padStart(2, '0')}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${yearShort}`;
+
+            generateText();
         }
 
-        document.getElementById('excel-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        // ฟังก์ชันตัดเศษทศนิยมและใส่คอมมา
+        function fmt(val) {
+            return Math.round(Number(val) || 0).toLocaleString('en-US');
+        }
 
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        function calculateDiffText(current, target) {
+            const diff = Math.round(current - target);
+            const symbol = diff >= 0 ? "🔼 +" : "🔽 -";
+            return `${symbol}${fmt(Math.abs(diff))}`;
+        }
 
-                    let grandTotalRow = null;
-                    for (let r = 0; r < sheetData.length; r++) {
-                        const row = sheetData[r];
-                        if (row && row.some(cell => typeof cell === 'string' && cell.toUpperCase().includes('GRAND TOTAL'))) {
-                            grandTotalRow = row;
-                            break;
-                        }
-                    }
+        function generateText() {
+            const valA = Math.round(parseFloat(document.getElementById('sales-a').value) || 0);
+            const valB = Math.round(parseFloat(document.getElementById('sales-b').value) || 0);
+            const valC = Math.round(parseFloat(document.getElementById('sales-c').value) || 0);
+            const yesterdayTotal = parseFloat(document.getElementById('sales-yesterday').value) || 0;
 
-                    if (!grandTotalRow) {
-                        alert("ไม่พบแถว GRAND TOTAL ในไฟล์ Excel กรุณาตรวจสอบรูปแบบไฟล์ครับ");
-                        return;
-                    }
+            const totalCurrent = valA + valB + valC;
 
-                    const valCA = sumRowRange(grandTotalRow, 21, 26); // V ถึง AA
-                    const valA  = sumRowRange(grandTotalRow, 3, 9);   // D ถึง J
-                    const valB  = sumRowRange(grandTotalRow, 10, 18); // K ถึง S
-                    const valC  = sumRowRange(grandTotalRow, 19, 20); // T ถึง U
-                    const valTotal = parseFloat(grandTotalRow[28]) || (valCA + valA + valB + valC);
+            if (!valA && !valB && !valC) {
+                document.getElementById('preview-box').innerText = "กรุณากรอกข้อมูลยอดขาย...";
+                return "";
+            }
 
-                    shiftData = {
-                        date: document.getElementById('sale-date').value,
-                        ca: valCA,
-                        a: valA,
-                        sumA: valCA + valA,
-                        b: valB,
-                        c: valC,
-                        total: valTotal
-                    };
+            const percentTarget = ((totalCurrent / TARGET_TOTAL) * 100).toFixed(2);
 
-                    document.getElementById('res-ca').innerText = valCA.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                    document.getElementById('res-a').innerText = valA.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                    document.getElementById('res-sum-a').innerText = (valCA + valA).toLocaleString('en-US', { minimumFractionDigits: 2 });
-                    document.getElementById('res-b').innerText = valB.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                    document.getElementById('res-c').innerText = valC.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                    document.getElementById('res-total').innerText = valTotal.toLocaleString('en-US', { minimumFractionDigits: 2 });
+            let msg = `Update สรุปยอดขายรวม ALL KPT ${currentDateStr}\n เวลา ${formattedTime}\n`;
+            msg += `---------------------------\n`;
+            msg += `รอบ A (+CA): ${fmt(valA).padEnd(9)} (Target ${fmt(TARGET_A)})\n`;
+            msg += `รอบ B:       ${fmt(valB).padEnd(9)} (Target ${fmt(TARGET_B)})\n`;
+            msg += `รอบ C:       ${fmt(valC).padEnd(9)} (Target ${fmt(TARGET_C)})\n`;
+            msg += `---------------------------\n`;
+            msg += `ยอดรวมทั้งวัน: ${fmt(totalCurrent)}\n`;
+            msg += `---------------------------\n`;
+            msg += `เทียบเมื่อวาน ${yesterdayDateStr} (${fmt(yesterdayTotal)})\n`;
+            msg += `${calculateDiffText(totalCurrent, yesterdayTotal)}\n`;
+            msg += `เป้าหมาย ALL KPT: ${fmt(TARGET_TOTAL)}\n`;
+            msg += `${calculateDiffText(totalCurrent, TARGET_TOTAL)} (${percentTarget}%)`;
 
-                    document.getElementById('result-box').classList.remove('hidden');
-                } catch (err) {
-                    alert("เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: " + err);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
+            document.getElementById('preview-box').innerText = msg;
+            return msg;
+        }
 
-        // ส่งข้อมูลแบบ Form ข้ามโดเมนเพื่อเลี่ยงปัญหา CORS บน GitHub Pages
-        function sendToGoogleSheets() {
-            if (!shiftData) return;
-
-            if (WEB_APP_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE" || WEB_APP_URL === "") {
-                alert("กรุณาระบุ URL ของ Google Apps Script ในตัวแปร WEB_APP_URL ก่อนครับ");
+        // ดึงยอดรวมของเมื่อวานจาก Google Sheet ผ่าน API
+        function fetchYesterdayFromSheet() {
+            if (APPS_SCRIPT_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE" || !APPS_SCRIPT_URL) {
+                alert("กรุณาระบุ URL ของ Google Apps Script ก่อนครับ");
                 return;
             }
 
-            const btn = document.getElementById('save-btn');
-            btn.innerText = "⏳ กำลังบันทึกข้อมูล...";
-            btn.disabled = true;
+            fetch(APPS_SCRIPT_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        // ดึงแถวล่าสุดจาก Sheet
+                        const lastRecord = data[data.length - 1];
+                        document.getElementById('sales-yesterday').value = Math.round(lastRecord.total);
+                        generateText();
+                        alert(`✅ ดึงยอดของวันที่ ${lastRecord.date} มาเรียบร้อยแล้ว: ${fmt(lastRecord.total)} บาท`);
+                    } else {
+                        alert("ไม่พบข้อมูลใน Google Sheet");
+                    }
+                })
+                .catch(err => alert("เกิดข้อผิดพลาดในการดึงข้อมูล: " + err));
+        }
 
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: JSON.stringify(shiftData)
-            }).then(() => {
-                alert("✅ ส่งข้อมูลบันทึกลง Google Sheets เรียบร้อยแล้ว!");
-                btn.innerText = "☁️ บันทึกลง Google Sheets";
-                btn.disabled = false;
-            }).catch(err => {
-                alert("เกิดข้อผิดพลาด: " + err);
-                btn.innerText = "☁️ บันทึกลง Google Sheets";
-                btn.disabled = false;
-            });
+        ['sales-a', 'sales-b', 'sales-c', 'sales-yesterday'].forEach(id => {
+            document.getElementById(id).addEventListener('input', generateText);
+        });
+
+        window.onload = function() {
+            refreshTime();
+        };
+
+        function copyToClipboard() {
+            const text = generateText();
+            if (!text) {
+                alert("กรุณากรอกยอดขายก่อนคัดลอกครับ");
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('opacity-0');
+                toast.classList.add('opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('opacity-100');
+                    toast.classList.add('opacity-0');
+                }, 2000);
+            }).catch(err => alert("คัดลอกไม่สำเร็จ: " + err));
         }
     </script>
 </body>
