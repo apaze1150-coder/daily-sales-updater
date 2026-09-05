@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบอัปเดตและปิดยอดขาย ALL KPT</title>
+    <title>ระบบสรุปยอดขายรายวัน</title>
+    <!-- ใช้ Tailwind CSS CDN เวอร์ชันเสถียร -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -13,331 +13,157 @@
         body { font-family: 'Prompt', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 p-3 pb-32">
+<body class="bg-slate-50 min-h-screen flex flex-col justify-between text-slate-800">
 
-    <div class="max-w-md mx-auto space-y-4">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-md flex justify-between items-center">
+    <div class="p-4 max-w-md mx-auto w-full space-y-4 mb-24">
+        <!-- ส่วนหัวแสดงเวลาปัจจุบัน และปุ่มรีเฟรชเวลา -->
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-md flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-bold">📊 อัปเดตยอดขาย ALL KPT</h1>
-                <p class="text-sm opacity-90 mt-0.5">เวลา: <span id="current-time" class="font-bold bg-white/20 px-2 py-0.5 rounded">00.00</span> | <span id="sheet-status" class="text-xs text-yellow-200">⏳ กำลังเชื่อมต่อ...</span></p>
+                <h1 class="text-xl font-bold">📊 อัปเดตยอดขาย</h1>
+                <p class="text-sm opacity-90 mt-0.5">เวลาปัจจุบัน: <span id="current-time" class="font-bold bg-white/20 px-2 py-0.5 rounded">00.00</span></p>
             </div>
-            <button onclick="refreshTime(); loadSheetData();" class="bg-white/20 hover:bg-white/30 active:scale-95 p-2 rounded-xl text-xs flex items-center gap-1">
-                🔄 รีเฟรช
+            <button onclick="refreshTime()" class="bg-white/20 hover:bg-white/30 active:scale-95 p-2 rounded-xl transition-all text-sm flex items-center gap-1">
+                🔄 รีเฟรชเวลา
             </button>
         </div>
 
-        <!-- แท็บสลับหน้า -->
-        <div class="flex bg-slate-200 p-1 rounded-xl text-sm font-medium">
-            <button id="tab-monitor-btn" onclick="switchTab('monitor')" class="flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition-all text-center">
-                ✍️ อัปเดตส่ง LINE
-            </button>
-            <button id="tab-upload-btn" onclick="switchTab('upload')" class="flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition-all text-center">
-                📂 อัปโหลดปิดวัน (Excel)
-            </button>
-        </div>
+        <!-- ช่องกรอกข้อมูลยอดขาย -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm space-y-4 border border-slate-100">
+            <div>
+                <label class="block text-sm font-medium text-slate-600 mb-1">💰 ยอดขายปัจจุบัน</label>
+                <input type="number" id="sales-current" placeholder="กรอกยอดขายล่าสุด" class="w-full text-lg p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            
+            <hr class="border-slate-100">
 
-        <!-- โหมด 1: ส่ง LINE -->
-        <div id="section-monitor" class="space-y-4">
-            <!-- ปุ่มเลือกรอบการทำงาน (แยกปุ่ม CA ออกมา) -->
-            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">เลือกรอบการทำงาน</label>
-                <div class="grid grid-cols-4 gap-1.5">
-                    <button type="button" onclick="selectShift('CA')" id="btn-shift-CA" class="shift-btn py-2 text-xs rounded-xl border border-blue-600 bg-blue-50 text-blue-700 font-bold">
-                        รอบ CA
-                    </button>
-                    <button type="button" onclick="selectShift('A')" id="btn-shift-A" class="shift-btn py-2 text-xs rounded-xl border border-slate-200 text-slate-600">
-                        รอบ A (+CA)
-                    </button>
-                    <button type="button" onclick="selectShift('B')" id="btn-shift-B" class="shift-btn py-2 text-xs rounded-xl border border-slate-200 text-slate-600">
-                        รอบ B
-                    </button>
-                    <button type="button" onclick="selectShift('C')" id="btn-shift-C" class="shift-btn py-2 text-xs rounded-xl border border-slate-200 text-slate-600">
-                        รอบ C
-                    </button>
-                </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-600 mb-1">⏳ ยอดขายเมื่อวาน (ช่วงเวลาเดียวกัน)</label>
+                <input type="number" id="sales-yesterday" placeholder="กรอกยอดขายเมื่อวาน" class="w-full text-lg p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
-            <!-- ช่องกรอกยอดขาย -->
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">💰 ยอดขายปัจจุบันที่ทำได้</label>
-                    <input type="number" id="sales-current" placeholder="กรอกยอดขายปัจจุบัน (ไม่มีจุด)" class="w-full text-lg p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600">
-                </div>
-
-                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
-                    <div class="flex justify-between text-slate-500">
-                        <span>ยอดเมื่อวานรอบเดียวกัน (จากชีต):</span>
-                        <span id="label-yesterday-val" class="font-bold text-slate-700">กำลังโหลด...</span>
-                    </div>
-                    <div class="flex justify-between text-slate-500">
-                        <span>Target ของรอบนี้:</span>
-                        <span id="label-target-val" class="font-bold text-slate-700">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- กล่อง Preview -->
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">ข้อความที่จะคัดลอก (PREVIEW)</h3>
-                <pre id="preview-box" class="bg-blue-50/60 text-slate-800 p-4 rounded-xl border border-blue-100 whitespace-pre-wrap text-sm leading-relaxed min-h-[150px] font-mono">กรุณากรอกยอดขายปัจจุบัน...</pre>
+            <div>
+                <label class="block text-sm font-medium text-slate-600 mb-1">📅 ยอดขาย Week ก่อน (ช่วงเวลาเดียวกัน)</label>
+                <input type="number" id="sales-week" placeholder="กรอกยอดขายสัปดาห์ก่อน" class="w-full text-lg p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
         </div>
 
-        <!-- โหมด 2: อัปโหลด Excel ปิดวัน -->
-        <div id="section-upload" class="hidden space-y-4">
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-1">📅 วันที่ปิดยอด</label>
-                    <input type="date" id="sale-date" class="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-1">📂 เลือกไฟล์ Excel (.xlsx)</label>
-                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="w-full p-2 border border-slate-200 rounded-xl file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700">
-                </div>
-            </div>
-
-            <div id="upload-result" class="hidden bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-2 text-sm">
-                <h3 class="font-bold text-slate-700 pb-2 border-b">สรุปยอดที่อ่านได้จากไฟล์</h3>
-                <div class="flex justify-between py-1 border-b border-dashed"><span class="text-slate-500">รอบ CA:</span><span id="sum-ca" class="font-bold">0</span></div>
-                <div class="flex justify-between py-1 border-b border-dashed"><span class="text-slate-500">รอบ CA + A:</span><span id="sum-a" class="font-bold">0</span></div>
-                <div class="flex justify-between py-1 border-b border-dashed"><span class="text-slate-500">รอบ B:</span><span id="sum-b" class="font-bold">0</span></div>
-                <div class="flex justify-between py-1 border-b border-dashed"><span class="text-slate-500">รอบ C:</span><span id="sum-c" class="font-bold">0</span></div>
-                <div class="flex justify-between pt-2 text-base font-bold text-emerald-600"><span>รวมทั้งวัน:</span><span id="sum-total">0</span></div>
-                
-                <button id="save-sheet-btn" onclick="sendToGoogleSheets()" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl shadow transition-all">
-                    ☁️ บันทึกลง Google Sheets
-                </button>
-            </div>
+        <!-- กล่องแสดงตัวอย่างข้อความ (Real-time Preview) -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">ข้อความที่จะคัดลอก (Preview)</h3>
+            <div id="preview-box" class="bg-emerald-50/50 text-slate-700 p-4 rounded-xl border border-emerald-100 whitespace-pre-wrap text-[16px] leading-relaxed min-h-[140px]">กรุณากรอกข้อมูลยอดขาย...</div>
         </div>
     </div>
 
-    <!-- ปุ่มคัดลอกส่ง LINE -->
-    <div id="copy-bar" class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 max-w-md mx-auto w-full z-50">
-        <button onclick="copyToClipboard()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all text-white font-medium text-lg py-3.5 rounded-xl shadow-md flex justify-center items-center gap-2">
-            📋 คัดลอกข้อความส่ง LINE
+    <!-- ปุ่มคัดลอกข้อความแบบล็อกติดอยู่ด้านล่างจอมือถือ (Sticky Bottom) -->
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 max-w-md mx-auto w-full z-50">
+        <button id="copy-btn" onclick="copyToClipboard()" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] transition-all text-white font-medium text-lg py-4 rounded-xl shadow-md flex justify-center items-center gap-2">
+            📋 คัดลอกข้อความ
         </button>
     </div>
 
-    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+    <!-- ข้อความแจ้งเตือน (Toast Notification) -->
+    <div id="toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
         ✅ คัดลอกข้อความสำเร็จแล้ว!
     </div>
 
     <script>
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9pZvoL7DBv9nz8hjCPi9jeDBAR-R2t1CKBafLeZ0xjxkxzusGMXBrPjNKzM9v502XCQ/exec";
-
-        const TARGETS = {
-            CA: { name: "รอบ CA", target: null }, // รอบ CA ไม่มีเป้าแยกเดี่ยว
-            A:  { name: "รอบ A (+CA)", target: 2264147 },
-            B:  { name: "รอบ B", target: 3428653 },
-            C:  { name: "รอบ C", target: 1507200 }
-        };
-
-        let currentShift = 'CA';
-        let yesterdayData = null;
         let formattedTime = "";
         let currentDateStr = "";
         let yesterdayDateStr = "";
-        let excelParsedData = null;
+        let lastWeekDateStr = "";
 
+        // ฟังก์ชันตั้งค่าเวลาปัจจุบันและคำนวณวันที่อัตโนมัติพร้อมปี พ.ศ. ย่อ (26)
         function refreshTime() {
             const now = new Date();
+            const yearShort = "26"; // ล็อกเป็นปี พ.ศ. 26 ตามต้องการ
+            
+            // 1. ฟอร์แมตเวลาปัจจุบัน (HH.mm)
             formattedTime = `${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}`;
             document.getElementById('current-time').innerText = formattedTime;
-            currentDateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/26`;
+            
+            // 2. คำนวณวันที่ปัจจุบัน (วัน/เดือน/26)
+            currentDateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${yearShort}`;
 
-            const yest = new Date();
-            yest.setDate(now.getDate() - 1);
-            yesterdayDateStr = `${String(yest.getDate()).padStart(2, '0')}/${String(yest.getMonth() + 1).padStart(2, '0')}/26`;
+            // 3. คำนวณวันที่เมื่อวาน (วัน/เดือน/26)
+            const yesterday = new Date();
+            yesterday.setDate(now.getDate() - 1);
+            yesterdayDateStr = `${String(yesterday.getDate()).padStart(2, '0')}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${yearShort}`;
+            
+            // 4. คำนวณวันที่สัปดาห์ที่แล้ว (วัน/เดือน/26)
+            const lastWeek = new Date();
+            lastWeek.setDate(now.getDate() - 7);
+            lastWeekDateStr = `${String(lastWeek.getDate()).padStart(2, '0')}/${String(lastWeek.getMonth() + 1).padStart(2, '0')}/${yearShort}`;
 
-            renderPreview();
+            generateText(); // อัปเดต Preview
         }
 
-        function fmt(n) {
-            return Math.round(Number(n) || 0).toLocaleString('en-US');
+        // อ้างอิง Elements
+        const currentInput = document.getElementById('sales-current');
+        const yesterdayInput = document.getElementById('sales-yesterday');
+        const weekInput = document.getElementById('sales-week');
+        const previewBox = document.getElementById('preview-box');
+
+        // ฟังก์ชันแปลงเลขให้มีคอมมาคั่นหลักพัน
+        function formatNumber(num) {
+            return Number(num).toLocaleString('en-US');
         }
 
-        function calculateDiffText(current, target) {
-            const diff = Math.round(current - target);
-            const symbol = diff >= 0 ? "🔼 +" : "🔽 -";
-            return `${symbol}${fmt(Math.abs(diff))}`;
+        // ฟังก์ชันคำนวณส่วนต่างและแสดงสัญลักษณ์ 🔼/🔽 ตามเงื่อนไข
+        function calculateDiff(current, target) {
+            if (current === "" || target === "") return "";
+            const currentNum = parseFloat(current);
+            const targetNum = parseFloat(target);
+            const diff = currentNum - targetNum;
+            const formattedDiff = formatNumber(Math.abs(diff));
+
+            if (diff >= 0) {
+                return `🔼 +${formattedDiff}`;
+            } else {
+                return `🔽 -${formattedDiff}`;
+            }
         }
 
-        // ดึงข้อมูลจาก Google Sheets
-        function loadSheetData() {
-            document.getElementById('sheet-status').innerText = "⏳ กำลังโหลด...";
-            fetch(APPS_SCRIPT_URL)
-                .then(res => res.json())
-                .then(rows => {
-                    if (rows && rows.length > 0) {
-                        yesterdayData = rows[rows.length - 1]; // แถวล่าสุด (เช่น วันที่ 03/09)
-                        document.getElementById('sheet-status').className = "text-xs text-emerald-200";
-                        document.getElementById('sheet-status').innerText = `● ข้อมูลชีต: ${yesterdayData.date}`;
-                        updateLabels();
-                        renderPreview();
-                    } else {
-                        document.getElementById('sheet-status').className = "text-xs text-red-200";
-                        document.getElementById('sheet-status').innerText = "○ ไม่มีข้อมูล";
-                    }
-                })
-                .catch(() => {
-                    document.getElementById('sheet-status').className = "text-xs text-red-200";
-                    document.getElementById('sheet-status').innerText = "○ ออฟไลน์";
-                });
-        }
+        // ฟังก์ชันสร้างและจัดรูปแบบข้อความที่จะนำไปคัดลอก
+        function generateText() {
+            const current = currentInput.value;
+            const yesterday = yesterdayInput.value;
+            const week = weekInput.value;
 
-        function selectShift(shift) {
-            currentShift = shift;
-            document.querySelectorAll('.shift-btn').forEach(b => {
-                b.className = "shift-btn py-2 text-xs rounded-xl border border-slate-200 text-slate-600";
-            });
-            const activeBtn = document.getElementById(`btn-shift-${shift}`);
-            activeBtn.className = "shift-btn py-2 text-xs rounded-xl border border-blue-600 bg-blue-50 text-blue-700 font-bold";
-
-            updateLabels();
-            renderPreview();
-        }
-
-        function getYesterdayShiftValue() {
-            if (!yesterdayData) return 0;
-            if (currentShift === 'CA') return yesterdayData.ca;
-            if (currentShift === 'A') return yesterdayData.sumA;
-            if (currentShift === 'B') return yesterdayData.b;
-            if (currentShift === 'C') return yesterdayData.c;
-            return 0;
-        }
-
-        function updateLabels() {
-            const target = TARGETS[currentShift].target;
-            const yestVal = getYesterdayShiftValue();
-            document.getElementById('label-target-val').innerText = target ? fmt(target) : "ไม่มีเป้าเดี่ยว (รวมในรอบ A)";
-            document.getElementById('label-yesterday-val').innerText = yesterdayData ? `${fmt(yestVal)} บาท` : "ไม่มีข้อมูลชีต";
-        }
-
-        function renderPreview() {
-            const inputVal = document.getElementById('sales-current').value;
-            if (!inputVal) {
-                document.getElementById('preview-box').innerText = "กรุณากรอกยอดขายปัจจุบัน...";
+            if (current === "") {
+                previewBox.innerText = "กรุณากรอกข้อมูลยอดขาย...";
                 return "";
             }
 
-            const current = Math.round(parseFloat(inputVal) || 0);
-            const target = TARGETS[currentShift].target;
-            const yestVal = getYesterdayShiftValue();
-
-            let msg = `Update ยอดขาย ${currentDateStr} (${TARGETS[currentShift].name})\n เวลา ${formattedTime}\n`;
-            msg += `---------------------------\n`;
-            msg += `ยอดขาย \n${fmt(current)}\n`;
-            msg += `---------------------------\n`;
-            msg += `เปรียบเทียบยอดขาย\n`;
-            msg += `เมื่อวาน ${yesterdayDateStr}\n`;
-            msg += `${calculateDiffText(current, yestVal)}\n`;
+            // จัดโครงสร้างข้อความพร้อมแสดงปีท้ายวันที่
+            let text = `Update ยอดขาย ${currentDateStr}\n เวลา ${formattedTime}\n---------------------------\nยอดขาย \n${formatNumber(current)}\n---------------------------\nเปรียบเทียบยอดขาย\nเมื่อวาน ${yesterdayDateStr}\n`;
             
-            if (target) {
-                msg += `Target ${TARGETS[currentShift].name} (${fmt(target)})\n`;
-                msg += `${calculateDiffText(current, target)}`;
-            }
+            text += yesterday !== "" ? calculateDiff(current, yesterday) : "-(กรุณากรอกยอดเมื่อวาน)-";
+            text += `\nWeek ${lastWeekDateStr}\n`;
+            text += week !== "" ? calculateDiff(current, week) : "-(กรุณากรอกยอด Week ก่อน)-";
 
-            document.getElementById('preview-box').innerText = msg;
-            return msg;
+            previewBox.innerText = text;
+            return text;
         }
 
-        function switchTab(tab) {
-            const monitorSec = document.getElementById('section-monitor');
-            const uploadSec = document.getElementById('section-upload');
-            const copyBar = document.getElementById('copy-bar');
-            const monBtn = document.getElementById('tab-monitor-btn');
-            const upBtn = document.getElementById('tab-upload-btn');
-
-            if (tab === 'monitor') {
-                monitorSec.classList.remove('hidden');
-                uploadSec.classList.add('hidden');
-                copyBar.classList.remove('hidden');
-                monBtn.className = "flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition-all text-center";
-                upBtn.className = "flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition-all text-center";
-            } else {
-                monitorSec.classList.add('hidden');
-                uploadSec.classList.remove('hidden');
-                copyBar.classList.add('hidden');
-                upBtn.className = "flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition-all text-center";
-                monBtn.className = "flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition-all text-center";
-            }
-        }
-
-        // ระบบอ่าน Excel
-        document.getElementById('sale-date').valueAsDate = new Date();
-        document.getElementById('excel-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                let gTotal = json.find(r => r && r.some(c => typeof c === 'string' && c.toUpperCase().includes('GRAND TOTAL')));
-                if (!gTotal) { alert("ไม่พบแถว GRAND TOTAL"); return; }
-
-                const sumRange = (s, end) => {
-                    let t = 0;
-                    for (let i = s; i <= end; i++) t += parseFloat(gTotal[i]) || 0;
-                    return Math.round(t);
-                };
-
-                const valCA = sumRange(21, 26);
-                const valA  = sumRange(3, 9);
-                const valB  = sumRange(10, 18);
-                const valC  = sumRange(19, 20);
-                const valTotal = Math.round(parseFloat(gTotal[28]) || (valCA + valA + valB + valC));
-
-                excelParsedData = {
-                    date: document.getElementById('sale-date').value,
-                    ca: valCA,
-                    a: valA,
-                    sumA: valCA + valA,
-                    b: valB,
-                    c: valC,
-                    total: valTotal
-                };
-
-                document.getElementById('sum-ca').innerText = fmt(valCA);
-                document.getElementById('sum-a').innerText = fmt(valCA + valA);
-                document.getElementById('sum-b').innerText = fmt(valB);
-                document.getElementById('sum-c').innerText = fmt(valC);
-                document.getElementById('sum-total').innerText = fmt(valTotal);
-                document.getElementById('upload-result').classList.remove('hidden');
-            };
-            reader.readAsArrayBuffer(file);
+        // ดักจับการกรอกข้อมูลเพื่อคำนวณและแสดงผลแบบ Real-time
+        [currentInput, yesterdayInput, weekInput].forEach(input => {
+            input.addEventListener('input', generateText);
         });
 
-        function sendToGoogleSheets() {
-            if (!excelParsedData) return;
-            const btn = document.getElementById('save-sheet-btn');
-            btn.innerText = "⏳ กำลังบันทึก...";
-            btn.disabled = true;
+        // เรียกใช้งานเวลาและวันที่ทันทีเมื่อโหลดหน้าเว็บเสร็จ
+        window.onload = function() {
+            refreshTime();
+        };
 
-            fetch(APPS_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: JSON.stringify(excelParsedData)
-            }).then(() => {
-                alert("✅ บันทึกยอดขายลงชีตเรียบร้อย!");
-                btn.innerText = "☁️ บันทึกลง Google Sheets";
-                btn.disabled = false;
-                loadSheetData();
-            }).catch(err => {
-                alert("Error: " + err);
-                btn.disabled = false;
-            });
-        }
-
+        // ฟังก์ชันสำหรับคัดลอกข้อความลง Clipboard และแสดง Toast
         function copyToClipboard() {
-            const text = renderPreview();
-            if (!text) { alert("กรุณากรอกยอดขายก่อนครับ"); return; }
-            navigator.clipboard.writeText(text).then(() => {
+            const textToCopy = generateText();
+            if (!textToCopy) {
+                alert("กรุณากรอกยอดขายปัจจุบันก่อนคัดลอกครับ");
+                return;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
                 const toast = document.getElementById('toast');
                 toast.classList.remove('opacity-0');
                 toast.classList.add('opacity-100');
@@ -345,14 +171,10 @@
                     toast.classList.remove('opacity-100');
                     toast.classList.add('opacity-0');
                 }, 2000);
+            }).catch(err => {
+                alert('เกิดข้อผิดพลาดในการคัดลอกระบบ: ' + err);
             });
         }
-
-        document.getElementById('sales-current').addEventListener('input', renderPreview);
-        window.onload = function() {
-            refreshTime();
-            loadSheetData();
-        };
     </script>
 </body>
 </html>
